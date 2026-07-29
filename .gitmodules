@@ -1,0 +1,3 @@
+[submodule "Drivers/libdrivers"]
+	path = Drivers/libdrivers
+	url = git@github.com:nmbarr/libdrivers.git
