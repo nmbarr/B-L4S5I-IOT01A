@@ -1,0 +1,21 @@
+build
+mx.scratch
+!.settings
+
+# Compiled artifacts (in case anything builds outside build/)
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+*.su
+
+# VS Code editor cruft (keep this if you don't want personal VS Code
+# settings committed — skip it if you're intentionally sharing them)
+.vscode/ipch/
+.vscode/browse.vc.db*
+
+# OS junk
+.DS_Store
+Thumbs.db
