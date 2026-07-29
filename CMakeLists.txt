@@ -45,15 +45,14 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
-    Drivers/Components/ds18b20/ds18b20.c
-    Drivers/Components/hts221/hts221.c
+    Drivers/libdrivers/src/lis3mdl.c
+    Drivers/libdrivers/src/hts221.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    Drivers/Components/ds18b20
-    Drivers/Components/hts221
+    Drivers/libdrivers/include/libdrivers
 )
 
 # Add project symbols (macros)
