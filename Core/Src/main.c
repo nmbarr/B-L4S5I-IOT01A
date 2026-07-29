@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
 #include "hts221.h"
 #include "stm32l4xx_hal_def.h"
 
@@ -138,18 +139,26 @@ int main(void)
 
   bool who_am_i_result = HTS221_CheckWhoAmI(&hts221);
 
+  HTS221_Config_t hts221_config = {
+      .CtrlReg1 = 0x87,  // PD=1 (active), BDU=1, ODR=12.5Hz
+      .CtrlReg2 = 0x00,
+      .CtrlReg3 = 0x00,
+  };
+  HAL_StatusTypeDef init_result = HTS221_Init(&hts221, &hts221_config);
+
   HAL_StatusTypeDef calibration_result = HTS221_ReadCalibration(&hts221);
-
-  float temp = HTS221_ReadTemperature(&hts221);
-  
-  float rh = HTS221_ReadHumidity(&hts221);
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    float temp = HTS221_ReadTemperature(&hts221);
+    float rh = HTS221_ReadHumidity(&hts221);
+
+    printf("Temp: %.2f C, RH: %.2f %%\r\n", temp, rh);
+
+    HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -915,7 +924,11 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+int __io_putchar(int ch)
+{
+  HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  return ch;
+}
 /* USER CODE END 4 */
 
 /**
