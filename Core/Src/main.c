@@ -153,12 +153,15 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    float temp = HTS221_ReadTemperature(&hts221);
+    float temp_C = HTS221_ReadTemperature(&hts221);
     float rh = HTS221_ReadHumidity(&hts221);
 
-    printf("Temp: %.2f C, RH: %.2f %%\r\n", temp, rh);
+    float temp_F = (9.0 / 5.0) * temp_C + 32.0;
 
-    HAL_Delay(1000);
+    printf(">temp_F:%.2f\n", temp_F);
+    printf(">humidity:%.2f\n", rh);
+
+    HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
