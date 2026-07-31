@@ -1,0 +1,32 @@
+# Firmware C style — tuned to match STM32CubeMX-generated code so
+# format-on-save is idempotent and never churns the generated sources.
+BasedOnStyle: LLVM
+
+Language: Cpp
+
+# Indentation: 2 spaces, matching CubeMX output.
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+
+# CubeMX wraps at 80 columns.
+ColumnLimit: 0
+
+# CubeMX uses Allman braces (opening brace on its own line).
+BreakBeforeBraces: Allman
+
+# Pointers bind to the name: `uint8_t *reg`.
+PointerAlignment: Right
+
+# Don't collapse short blocks/functions onto one line.
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# Spacing.
+SpaceBeforeParens: ControlStatements
+
+# CubeMX code isn't clang-format-clean; don't fight its comments/includes.
+ReflowComments: false
+SortIncludes: Never
+SpacesBeforeTrailingComments: 2

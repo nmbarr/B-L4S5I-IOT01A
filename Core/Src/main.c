@@ -22,8 +22,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
-#include "hts221.h"
-#include "stm32l4xx_hal_def.h"
+#include "libdrivers/hts221.h"
+#include "libdrivers_stm32_i2c.h"
 
 /* USER CODE END Includes */
 
@@ -135,31 +135,46 @@ int main(void)
   MX_USART3_UART_Init();
   MX_USB_OTG_FS_USB_Init();
   /* USER CODE BEGIN 2 */
-  hts221.hi2c = &hi2c2;
+  static Libdrivers_STM32_I2C_Context_t hts221_ctx = {
+      .hi2c = &hi2c2,
+      .device_addr = 0x5F << 1,  // HTS221 7-bit addr 0x5F, HAL wants it left-shifted
+  };
+  Libdrivers_STM32_I2C_InitBus(&hts221.bus, &hts221_ctx);
 
-  bool who_am_i_result = HTS221_CheckWhoAmI(&hts221);
+  if (HTS221_CheckWhoAmI(&hts221) != LIBDRIVERS_OK)
+  {
+    Error_Handler();
+  }
 
   HTS221_Config_t hts221_config = {
       .CtrlReg1 = 0x87,  // PD=1 (active), BDU=1, ODR=12.5Hz
       .CtrlReg2 = 0x00,
       .CtrlReg3 = 0x00,
   };
-  HAL_StatusTypeDef init_result = HTS221_Init(&hts221, &hts221_config);
+  if (HTS221_Init(&hts221, &hts221_config) != LIBDRIVERS_OK)
+  {
+    Error_Handler();
+  }
 
-  HAL_StatusTypeDef calibration_result = HTS221_ReadCalibration(&hts221);
+  if (HTS221_ReadCalibration(&hts221) != LIBDRIVERS_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    float temp_C = HTS221_ReadTemperature(&hts221);
-    float rh = HTS221_ReadHumidity(&hts221);
+    float temp_C, rh;
+    if (HTS221_ReadTemperature(&hts221, &temp_C) == LIBDRIVERS_OK &&
+        HTS221_ReadHumidity(&hts221, &rh) == LIBDRIVERS_OK)
+    {
+      float temp_F = (9.0 / 5.0) * temp_C + 32.0;
 
-    float temp_F = (9.0 / 5.0) * temp_C + 32.0;
-
-    printf(">temp_F:%.2f\n", temp_F);
-    printf(">humidity:%.2f\n", rh);
+      printf(">temp_F:%.2f\n", temp_F);
+      printf(">humidity:%.2f\n", rh);
+    }
 
     HAL_Delay(100);
     /* USER CODE END WHILE */

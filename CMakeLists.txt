@@ -47,12 +47,16 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     Drivers/libdrivers/src/lis3mdl.c
     Drivers/libdrivers/src/hts221.c
+    Drivers/libdrivers/src/bus.c
+    # STM32 HAL port for the register bus (built here, not by libdrivers' CMake)
+    Drivers/libdrivers/port/stm32/libdrivers_stm32_i2c.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    Drivers/libdrivers/include/libdrivers
+    Drivers/libdrivers/include
+    Drivers/libdrivers/port/stm32
 )
 
 # Add project symbols (macros)
