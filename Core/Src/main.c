@@ -235,20 +235,20 @@ int main(void)
       HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);  // Blink LED if reading sensor fails
     }
 
-    LSM6DSL_XLData_t accel;
-    LSM6DSL_GyroData_t gyro;
-    uint8_t lsm6_ok = (LSM6DSL_ReadRawGyro(&lsm6, &gyro) == LIBDRIVERS_OK &&
-                       LSM6DSL_ReadRawXL(&lsm6, &accel) == LIBDRIVERS_OK);
+    LSM6DSL_XLData_mg_t accel;
+    LSM6DSL_GyroData_mdps_t gyro;
+    uint8_t lsm6_ok = (LSM6DSL_ReadGyro_mdps(&lsm6, &gyro) == LIBDRIVERS_OK &&
+                       LSM6DSL_ReadXL_mg(&lsm6, &accel) == LIBDRIVERS_OK);
 
     if (lsm6_ok)
     {
-      gyro_x = gyro.X * 35.0f  / 1000.0f;
-      gyro_y = gyro.Y * 35.0f  / 1000.0f;
-      gyro_z = gyro.Z * 35.0f  / 1000.0f;
+      gyro_x = gyro.X_mdps / 1000.0f;
+      gyro_y = gyro.Y_mdps / 1000.0f;
+      gyro_z = gyro.Z_mdps / 1000.0f;
 
-      accel_x = accel.X * 0.122f / 1000.0f;
-      accel_y = accel.Y * 0.122f / 1000.0f;
-      accel_z = accel.Z * 0.122f / 1000.0f;
+      accel_x = accel.X_mg / 1000.0f;
+      accel_y = accel.Y_mg / 1000.0f;
+      accel_z = accel.Z_mg / 1000.0f;
     }
 
     // DS18B20: non-blocking conversion state machine (conversion takes up to 750 ms,
