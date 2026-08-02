@@ -196,16 +196,13 @@ int main(void)
   };
   Libdrivers_STM32_OneWire_InitBus(&ds18b20.ow, &ds18b20_ctx);
 
-  Libdrivers_Status_t ds18b20_init_status = DS18B20_Init(&ds18b20);
-  if (ds18b20_init_status != LIBDRIVERS_OK)
-  {
-    Error_Handler();
-  }
-
-  if (DS18B20_StartConversion(&ds18b20) != LIBDRIVERS_OK)
-  {
-    Error_Handler();
-  }
+  // Non-fatal: unlike HTS221/LSM6DSL above, DS18B20 may legitimately be
+  // disconnected during bring-up/testing. A failed reset/presence pulse here
+  // just means DS18B20_ReadTemperature keeps failing in the loop below
+  // (already handled there via its own status check), not that the rest of
+  // the board can't run.
+  DS18B20_Init(&ds18b20);
+  DS18B20_StartConversion(&ds18b20);
 
   /* USER CODE END 2 */
 
