@@ -170,27 +170,29 @@ int main(void)
   }
 
   static Libdrivers_STM32_I2C_Context_t lsm6_ctx = {
-    .hi2c = &hi2c2,
-    .device_addr = 0x6A << 1,
+      .hi2c = &hi2c2,
+      .device_addr = 0x6A << 1,
   };
   Libdrivers_STM32_I2C_InitBus(&lsm6.bus, &lsm6_ctx);
 
-  if (LSM6DSL_CheckWhoAmI(&lsm6) != LIBDRIVERS_OK) {
+  if (LSM6DSL_CheckWhoAmI(&lsm6) != LIBDRIVERS_OK)
+  {
     Error_Handler();
   }
 
   LSM6DSL_Config_t lsm6_config = {
-    .CtrlReg1_XL = 0x48, // 104 Hz normal mode, 4g, analog anti-aliasing BW = ODR/2
-    .CtrlReg2_G = 0x4C, // 104 Hz normal mode, 2000 dps full scale
-    .CtrlReg3_C = 0x04, // IF_INC enabled (auto-increment enabled)
+      .CtrlReg1_XL = 0x48,  // 104 Hz normal mode, 4g, analog anti-aliasing BW = ODR/2
+      .CtrlReg2_G = 0x4C,   // 104 Hz normal mode, 2000 dps full scale
+      .CtrlReg3_C = 0x04,   // IF_INC enabled (auto-increment enabled)
   };
-  if (LSM6DSL_Init(&lsm6, &lsm6_config) != LIBDRIVERS_OK) {
+  if (LSM6DSL_Init(&lsm6, &lsm6_config) != LIBDRIVERS_OK)
+  {
     Error_Handler();
   }
 
   static Libdrivers_STM32_OneWire_Context_t ds18b20_ctx = {
-    .port = GPIOA,
-    .pin  = ARD_D4_Pin,
+      .port = GPIOA,
+      .pin = ARD_D4_Pin,
   };
   Libdrivers_STM32_OneWire_InitBus(&ds18b20.ow, &ds18b20_ctx);
 
@@ -221,7 +223,7 @@ int main(void)
 
     float temp_C;
     uint8_t hts221_ok = (HTS221_ReadTemperature(&hts221, &temp_C) == LIBDRIVERS_OK &&
-                          HTS221_ReadHumidity(&hts221, &rh) == LIBDRIVERS_OK);
+                         HTS221_ReadHumidity(&hts221, &rh) == LIBDRIVERS_OK);
 
     if (hts221_ok)
     {
@@ -236,7 +238,7 @@ int main(void)
     LSM6DSL_XLData_t accel;
     LSM6DSL_GyroData_t gyro;
     uint8_t lsm6_ok = (LSM6DSL_ReadRawGyro(&lsm6, &gyro) == LIBDRIVERS_OK &&
-                        LSM6DSL_ReadRawXL(&lsm6, &accel) == LIBDRIVERS_OK);
+                       LSM6DSL_ReadRawXL(&lsm6, &accel) == LIBDRIVERS_OK);
 
     if (lsm6_ok)
     {
@@ -954,7 +956,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : ARD_D4_Pin (1-Wire, DS18B20) */
   GPIO_InitStruct.Pin = ARD_D4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;   // use GPIO_NOPULL if you have an external 4.7k pull-up
+  GPIO_InitStruct.Pull = GPIO_PULLUP;  // use GPIO_NOPULL if you have an external 4.7k pull-up
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
