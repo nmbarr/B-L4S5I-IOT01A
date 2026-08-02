@@ -22,8 +22,13 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include "libdrivers/bus.h"
+#include "libdrivers/onewire.h"
+#include "libdrivers/ds18b20.h"
 #include "libdrivers/hts221.h"
+#include "libdrivers/lsm6dsl.h"
 #include "libdrivers_stm32_i2c.h"
+#include "libdrivers_stm32_onewire.h"
 #include "stm32l4xx_hal_gpio.h"
 
 /* USER CODE END Includes */
@@ -63,6 +68,8 @@ UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 HTS221_Handle_t hts221;
+LSM6DSL_Handle_t lsm6;
+DS18B20_Handle_t ds18b20;
 
 /* USER CODE END PV */
 
@@ -161,27 +168,111 @@ int main(void)
   {
     Error_Handler();
   }
+
+  static Libdrivers_STM32_I2C_Context_t lsm6_ctx = {
+    .hi2c = &hi2c2,
+    .device_addr = 0x6A << 1,
+  };
+  Libdrivers_STM32_I2C_InitBus(&lsm6.bus, &lsm6_ctx);
+
+  if (LSM6DSL_CheckWhoAmI(&lsm6) != LIBDRIVERS_OK) {
+    Error_Handler();
+  }
+
+  LSM6DSL_Config_t lsm6_config = {
+    .CtrlReg1_XL = 0x48, // 104 Hz normal mode, 4g, analog anti-aliasing BW = ODR/2
+    .CtrlReg2_G = 0x4C, // 104 Hz normal mode, 2000 dps full scale
+    .CtrlReg3_C = 0x04, // IF_INC enabled (auto-increment enabled)
+  };
+  if (LSM6DSL_Init(&lsm6, &lsm6_config) != LIBDRIVERS_OK) {
+    Error_Handler();
+  }
+
+  static Libdrivers_STM32_OneWire_Context_t ds18b20_ctx = {
+    .port = GPIOA,
+    .pin  = ARD_D4_Pin,
+  };
+  Libdrivers_STM32_OneWire_InitBus(&ds18b20.ow, &ds18b20_ctx);
+
+  Libdrivers_Status_t ds18b20_init_status = DS18B20_Init(&ds18b20);
+  if (ds18b20_init_status != LIBDRIVERS_OK)
+  {
+    Error_Handler();
+  }
+
+  if (DS18B20_StartConversion(&ds18b20) != LIBDRIVERS_OK)
+  {
+    Error_Handler();
+  }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint32_t ds18b20_wait_ms = 0;
+  const uint32_t DS18B20_CONVERSION_MS = 750;
+  float ds18b20_temp_F = 0;  // persists across loop iterations so the plotter sees a held value, not a sawtooth
+
   while (1)
   {
-    float temp_C, rh;
-    if (HTS221_ReadTemperature(&hts221, &temp_C) == LIBDRIVERS_OK &&
-        HTS221_ReadHumidity(&hts221, &rh) == LIBDRIVERS_OK)
+    float temp_F = 0, rh = 0;
+    float gyro_x = 0, gyro_y = 0, gyro_z = 0;
+    float accel_x = 0, accel_y = 0, accel_z = 0;
+
+    float temp_C;
+    uint8_t hts221_ok = (HTS221_ReadTemperature(&hts221, &temp_C) == LIBDRIVERS_OK &&
+                          HTS221_ReadHumidity(&hts221, &rh) == LIBDRIVERS_OK);
+
+    if (hts221_ok)
     {
       HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);  // Reset the LED if no error
-
-      float temp_F = (9.0 / 5.0) * temp_C + 32.0;
-
-      printf(">temp_F:%.2f\n", temp_F);
-      printf(">humidity:%.2f\n", rh);
+      temp_F = (9.0f / 5.0f) * temp_C + 32.0f;
     }
     else
     {
       HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);  // Blink LED if reading sensor fails
     }
+
+    LSM6DSL_XLData_t accel;
+    LSM6DSL_GyroData_t gyro;
+    uint8_t lsm6_ok = (LSM6DSL_ReadRawGyro(&lsm6, &gyro) == LIBDRIVERS_OK &&
+                        LSM6DSL_ReadRawXL(&lsm6, &accel) == LIBDRIVERS_OK);
+
+    if (lsm6_ok)
+    {
+      gyro_x = gyro.X * 35.0f  / 1000.0f;
+      gyro_y = gyro.Y * 35.0f  / 1000.0f;
+      gyro_z = gyro.Z * 35.0f  / 1000.0f;
+
+      accel_x = accel.X * 0.122f / 1000.0f;
+      accel_y = accel.Y * 0.122f / 1000.0f;
+      accel_z = accel.Z * 0.122f / 1000.0f;
+    }
+
+    // DS18B20: non-blocking conversion state machine (conversion takes up to 750 ms,
+    // far longer than the 100 ms loop period, so we start a new conversion, then
+    // only attempt a read once enough loop iterations have elapsed)
+    ds18b20_wait_ms += 100;
+    if (ds18b20_wait_ms >= DS18B20_CONVERSION_MS)
+    {
+      float ds18b20_temp_C;
+      if (DS18B20_ReadTemperature(&ds18b20, &ds18b20_temp_C) == LIBDRIVERS_OK)
+      {
+        ds18b20_temp_F = (9.0f / 5.0f) * ds18b20_temp_C + 32.0f;
+      }
+      DS18B20_StartConversion(&ds18b20);  // kick off the next reading
+      ds18b20_wait_ms = 0;
+    }
+
+    printf(">temp_F:%.2f\n", temp_F);
+    printf(">humidity:%.2f\n", rh);
+    printf(">gyro_x:%.2f\n", gyro_x);
+    printf(">gyro_y:%.2f\n", gyro_y);
+    printf(">gyro_z:%.2f\n", gyro_z);
+    printf(">accel_x:%.2f\n", accel_x);
+    printf(">accel_y:%.2f\n", accel_y);
+    printf(">accel_z:%.2f\n", accel_z);
+    printf(">ds18b20_F:%.2f\n", ds18b20_temp_F);
 
     HAL_Delay(100);
     /* USER CODE END WHILE */
@@ -821,7 +912,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, ST25DV04K_RF_DISABLE_Pin | ISM43362_RST_Pin | ISM43362_SPI3_CSN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, ARD_D10_Pin | ARD_D4_Pin | ARD_D7_Pin | SPBTLE_RF_RST_Pin | ARD_D9_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, ARD_D10_Pin | ARD_D7_Pin | SPBTLE_RF_RST_Pin | ARD_D9_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, ARD_D8_Pin | ISM43362_BOOT0_Pin | ISM43362_WAKEUP_Pin | LED2_Pin | SPSGRF_915_SDN_Pin | ARD_D5_Pin | SPSGRF_915_SPI3_CSN_Pin, GPIO_PIN_RESET);
@@ -852,12 +943,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ARD_D10_Pin ARD_D4_Pin ARD_D7_Pin SPBTLE_RF_RST_Pin
+  /*Configure GPIO pins : ARD_D10_Pin ARD_D7_Pin SPBTLE_RF_RST_Pin
                            ARD_D9_Pin */
-  GPIO_InitStruct.Pin = ARD_D10_Pin | ARD_D4_Pin | ARD_D7_Pin | SPBTLE_RF_RST_Pin | ARD_D9_Pin;
+  GPIO_InitStruct.Pin = ARD_D10_Pin | ARD_D7_Pin | SPBTLE_RF_RST_Pin | ARD_D9_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ARD_D4_Pin (1-Wire, DS18B20) */
+  GPIO_InitStruct.Pin = ARD_D4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;   // use GPIO_NOPULL if you have an external 4.7k pull-up
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : ARD_D3_Pin */

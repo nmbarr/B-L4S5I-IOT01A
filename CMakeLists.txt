@@ -48,8 +48,11 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Drivers/libdrivers/src/lis3mdl.c
     Drivers/libdrivers/src/hts221.c
     Drivers/libdrivers/src/bus.c
+    Drivers/libdrivers/src/lsm6dsl.c
+    Drivers/libdrivers/src/ds18b20.c
     # STM32 HAL port for the register bus (built here, not by libdrivers' CMake)
     Drivers/libdrivers/port/stm32/libdrivers_stm32_i2c.c
+    Drivers/libdrivers/port/stm32/libdrivers_stm32_onewire.c
 )
 
 # Add include paths
